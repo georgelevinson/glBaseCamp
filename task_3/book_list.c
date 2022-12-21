@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "book_list.h"
 
 ElementPtr get_nth(ListPtr list, unsigned int index)
@@ -178,4 +179,53 @@ int insert_elements(ListPtr list, ValuePtr values, unsigned int val_arrlen, unsi
 int append_elements(ListPtr list, ValuePtr values, unsigned int val_arrlen)
 {
     return insert_elements(list, values, val_arrlen, list->length);
+};
+char * bookdata_tostring(Value value)
+{
+    char * result = (char*)calloc(80, sizeof(char));
+
+    sprintf(result, "\n\r\n\rBook Name: %s;\n\rPublication year: %i;\n\rNo.Pages: %i;\n\rLanguage: %s;\n\rBook Price: %f;\n\rBook Weight: %f;", value.name, value.year, value.pages, value.lang, value.price, value.weight);
+
+    printf("bookdata_tostring(): strlen = %i (is it 80??)", strlen(result)); // realloc memory if strlen works as expected ()
+
+    return result;
+}
+void print_list(ListPtr list)
+{
+    if(list == NULL)
+    {
+        printf("\n[NULL]\n\n");
+    }
+
+    ElementPtr curr = list->first;
+
+    printf("\n");
+
+    for (int i = 0; i < (list->length - 1); i++)
+    {
+        if(curr == NULL)
+        {
+            break;
+        }
+
+        if((i) % 4 == 0)
+        {
+            printf("%2i - %2i: ", i, i + 3);
+        }
+
+        char * curr_str = bookdata_tostring(curr->value);
+
+        printf("[(%s) %s (%s)]  ", curr->prev == NULL ? "NULL" : curr->prev->value.name, curr_str, curr->next == NULL ? "NULL" : curr->next->value.name);
+
+        free(curr_str);
+
+        if((i + 1) % 4 == 0)
+        {
+            printf("\n");
+        }
+
+        curr = curr->next;
+    }
+    printf("\nLength: %i", list->length);
+    printf("\n\n");
 };

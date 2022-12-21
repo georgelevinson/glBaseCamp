@@ -1,12 +1,14 @@
 
 typedef struct bookData 
 {
-    char name[20];
     double price;
     int pages;
-    char lang[20];
     float weight;
     unsigned short year;
+
+    // make flexible array members?
+    char name[20];
+    char lang[20];
 } Value, *ValuePtr;
 typedef struct bookListElement Element, *ElementPtr;
 struct bookListElement
