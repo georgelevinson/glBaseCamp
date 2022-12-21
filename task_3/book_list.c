@@ -90,3 +90,92 @@ void free_list(ListPtr list)
 
     free(list);
 };
+int delete_nth(ListPtr list, unsigned int index)
+{
+    ElementPtr nth = get_nth(list, index);
+
+    if(nth == NULL)
+    {
+        printf("\ndelete_nth has failed: index out of range.\n");
+        return 0;
+    }
+
+    if(nth->prev == NULL)
+    {
+        list->first = nth->next;
+    }
+    else
+    {
+        nth->prev->next = nth->next;
+    }
+    if(nth->next == NULL)
+    {
+        list->last = nth->prev;
+    }
+    else
+    {
+        nth->next->prev = nth->prev;
+    }
+
+    --(list->length);
+
+    free(nth);
+
+    return 1;
+};
+// this function sews two lists at a given joint element, thus src->first becomes [dest_index]`th element of dest list,
+// while the rest of dest (meaning elements starting with the original [dest_index]`th element) gets appended to the end of resulting list
+int merge_lists(ListPtr src, ListPtr dest, int dest_index)
+{
+    if(src == NULL)
+    {
+        printf("Invalid src list passed to merge_lists.\n");
+        return 0;
+    }
+
+    ElementPtr prev = get_nth(dest, dest_index - 1);
+    ElementPtr joint = get_nth(dest, dest_index);
+
+    if(joint == NULL && prev == NULL)
+    {
+        printf("Invalid destination list or an out of range index passed to merge_lists.\n");
+        return 0;
+    }
+    
+    src->first->prev = prev;
+
+    if(prev != NULL)
+    {
+        prev->next = src->first;
+    }
+    else
+    {
+        dest->first = src->first;
+    }
+
+    src->last->next = joint;
+
+    if(joint != NULL)
+    {
+        joint->prev = src->last;
+    }
+    else
+    {
+        dest->last = src->last;
+    }
+
+    dest->length += src->length;
+
+    free(src);
+    return 1;
+};
+int insert_elements(ListPtr list, ValuePtr values, unsigned int val_arrlen, unsigned int index)
+{
+    ListPtr newlist = init_list(values, val_arrlen);
+
+    return merge_lists(newlist, list, index);
+};
+int append_elements(ListPtr list, ValuePtr values, unsigned int val_arrlen)
+{
+    return insert_elements(list, values, val_arrlen, list->length);
+};

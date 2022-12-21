@@ -29,4 +29,4 @@ void free_list(ListPtr list);
 void print_list(ListPtr list);
 int delete_nth(ListPtr list, unsigned int index);
 int append_elements(ListPtr list, ValuePtr values);
-int insert_elements(ListPtr list, ValuePtr values, unsigned int index);
+int insert_elements(ListPtr list, ValuePtr values, unsigned int val_arrlen, unsigned int index);
