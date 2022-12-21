@@ -2,6 +2,45 @@
 #include <stdlib.h>
 #include "book_list.h"
 
+ElementPtr get_nth(ListPtr list, unsigned int index)
+{
+    if(list == NULL || list->first == NULL || list->last == NULL || (list->length - 1) < index)
+    {
+        return NULL;
+    }
+    
+    ElementPtr curr;
+
+    // conditional branching optimizes the number of loop iterations
+    if(index < list->length/2)
+    {
+        curr = list->first;
+
+        for (int i = 0; i < index; i++)
+        {
+            if(curr == NULL)
+            {
+                break;
+            }
+            curr = curr->next;
+        }
+    }
+    else
+    {
+        curr = list->last;
+
+        for (int i = 0; i < (list->length - index - 1); i--) // off by one?
+        {
+            if(curr == NULL)
+            {
+                break;
+            }
+            curr = curr->next;
+        }
+    }
+    
+    return curr;
+}
 ListPtr init_list(ValuePtr values, unsigned int arrlen)
 {
     ListPtr list = (ListPtr)calloc(1, sizeof(List));
