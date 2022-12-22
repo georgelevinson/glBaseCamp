@@ -51,9 +51,20 @@ int main(void)
 
     print_list(potter);
     print_list(feynman);
-    insert_elements(feynman, potter, 4);
+
+    insert_elements(&feynman, potter, 4);
     print_list(potter);
-    print_list(feynman); // segfault?? (feynman ptr has been freed by merge() func)
+    print_list(feynman); // pointers to memory with data-containing structs have been reinserted into a new list (dest list of insert_elements()), 
+    // while original list structure feynman (allocated by init_list(&fph_values, FPH_SERIES_LENGTH)) have been freed (it now makes no sense since the data accessible via newly merged list)
+    // dangling pointer to feynman has been assigned NULL by insert_elements(&feynman, potter, 4) to aviod invalid operations
+
+    for(int i = 0; i < FPH_SERIES_LENGTH; i++)
+        delete_nth(potter, 4);
+    print_list(potter); // inserted data removed from list, memory that has initially been allocated by init_list(&fph_values, FPH_SERIES_LENGTH) got released by delete_nth()
+
+    free_list(&potter);
+    free_list(&feynman); // already been freed, but this won't cause an error due to the NULL-pointer guard
+    print_list(potter);
 
     return 0;
 }

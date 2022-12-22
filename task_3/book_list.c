@@ -75,14 +75,14 @@ ListPtr init_list(ValuePtr values, unsigned int arrlen)
 
     return list;
 };
-void free_list(ListPtr list)
+void free_list(ListPtr * list)
 {
-    if(list == NULL)
+    if(*list == NULL)
     {
         return;
     }
 
-    ElementPtr curr = list->first;
+    ElementPtr curr = (*list)->first;
 
     while(curr != NULL)
     {
@@ -91,7 +91,8 @@ void free_list(ListPtr list)
         curr = next;
     }
 
-    free(list);
+    free(*list);
+    *list = NULL;
 };
 int delete_nth(ListPtr list, unsigned int index)
 {
@@ -99,7 +100,7 @@ int delete_nth(ListPtr list, unsigned int index)
 
     if(nth == NULL)
     {
-        printf("\ndelete_nth has failed: index out of range.\n");
+        printf("\n\rdelete_nth has failed: index out of range.\n\r");
         return 0;
     }
 
@@ -128,11 +129,11 @@ int delete_nth(ListPtr list, unsigned int index)
 };
 // this function sews two lists at a given joint element, thus src->first becomes [dest_index]`th element of dest list,
 // while the rest of dest (meaning elements starting with the original [dest_index]`th element) gets appended to the end of resulting list
-int insert_elements(ListPtr src, ListPtr dest, unsigned int dest_index)
+int insert_elements(ListPtr * src_ptr, ListPtr dest, unsigned int dest_index)
 {
-    if(src == NULL)
+    if((*src_ptr) == NULL)
     {
-        printf("Invalid src list passed to merge_lists.\n");
+        printf("Invalid src list passed to merge_lists.\n\r");
         return 0;
     }
 
@@ -141,61 +142,62 @@ int insert_elements(ListPtr src, ListPtr dest, unsigned int dest_index)
 
     if(joint == NULL && prev == NULL)
     {
-        printf("Invalid destination list or an out of range index passed to merge_lists.\n");
+        printf("Invalid destination list or an out of range index passed to merge_lists.\n\r");
         return 0;
     }
     
-    src->first->prev = prev;
+    (*src_ptr)->first->prev = prev;
 
     if(prev != NULL)
     {
-        prev->next = src->first;
+        prev->next = (*src_ptr)->first;
     }
     else
     {
-        dest->first = src->first;
+        dest->first = (*src_ptr)->first;
     }
 
-    src->last->next = joint;
+    (*src_ptr)->last->next = joint;
 
     if(joint != NULL)
     {
-        joint->prev = src->last;
+        joint->prev = (*src_ptr)->last;
     }
     else
     {
-        dest->last = src->last;
+        dest->last = (*src_ptr)->last;
     }
 
-    dest->length += src->length;
+    dest->length += (*src_ptr)->length;
 
-    free(src);
+    free(*src_ptr);
+    *src_ptr = NULL;
+
     return 1;
 };
-int append_elements(ListPtr src, ListPtr dest)
+int append_elements(ListPtr * src_ptr, ListPtr dest)
 {
-    return insert_elements(src, dest, dest->length);
+    return insert_elements(src_ptr, dest, dest->length);
 };
 char * bookdata_tostring(Value value)
 {
     char * result = (char*)calloc(MAX_BOOKDATA_STRLEN, sizeof(char));
 
-    sprintf(result, "\n\r\n\rBook Name: %s;\n\rPublication year: %i;\n\rNo.Pages: %i;\n\rLanguage: %s;\n\rBook Price: %f;\n\rBook Weight: %f;", value.name, value.year, value.pages, value.lang, value.price_GBP, value.weight_kg);
+    sprintf(result, "\n\rBook Name: %s;\n\rPublication year: %i;\n\rNo.Pages: %i;\n\rLanguage: %s;\n\rBook Price: %f;\n\rBook Weight: %f;\n\r", value.name, value.year, value.pages, value.lang, value.price_GBP, value.weight_kg);
 
     return (char*)realloc(result, sizeof(char) * (strlen(result) + 1));
 }
 void print_list(ListPtr list)
 {
-    printf("\n\nCURRENT LIST\n\n");
+    printf("\n\r\n\rCURRENT LIST\n\r\n\r");
 
     if(list == NULL)
     {
-        printf("\n\n [ NULL ] \n\n");
+        printf("[ NULL ] \n\r\n\r");
+        return;
     }
 
     ElementPtr curr = list->first;
-
-    printf("\n");
 
     for (int i = 0; i < list->length; i++)
     {
@@ -206,12 +208,12 @@ void print_list(ListPtr list)
 
         char * curr_str = bookdata_tostring(curr->value);
 
-        printf("[(%s) %s (%s)]  ", curr->prev == NULL ? "NULL" : curr->prev->value.name, curr_str, curr->next == NULL ? "NULL" : curr->next->value.name);
+        printf("[(Previous element: %s) %s (Next element: %s)]  \n\r\n\r", curr->prev == NULL ? "NULL" : curr->prev->value.name, curr_str, curr->next == NULL ? "NULL" : curr->next->value.name);
 
         free(curr_str);
 
         curr = curr->next;
     }
-    printf("\nLIST LENGTH: %i", list->length);
-    printf("\n\n");
+    printf("\n\rLIST LENGTH: %i", list->length);
+    printf("\n\r\n\r");
 };

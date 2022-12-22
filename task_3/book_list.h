@@ -26,9 +26,9 @@ typedef struct bookList
 
 
 ListPtr init_list(ValuePtr values, unsigned int arrlen);
-void free_list(ListPtr list);
+void free_list(ListPtr * list);
 
 void print_list(ListPtr list);
 int delete_nth(ListPtr list, unsigned int index);
-int append_elements(ListPtr src, ListPtr dest);
-int insert_elements(ListPtr src, ListPtr dest, unsigned int dest_index);
+int append_elements(ListPtr * src_ptr, ListPtr dest);
+int insert_elements(ListPtr * src_ptr, ListPtr dest, unsigned int dest_index);
