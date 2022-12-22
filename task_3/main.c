@@ -46,8 +46,8 @@ int main(void)
         fph_values[i].weight_kg = fph_weights_kg[i];
     }
 
-    ListPtr potter = init_list(&hp_values, HP_SERIES_LENGTH);
-    ListPtr feynman = init_list(&fph_values, FPH_SERIES_LENGTH);
+    ListPtr potter = init_list(hp_values, HP_SERIES_LENGTH);
+    ListPtr feynman = init_list(fph_values, FPH_SERIES_LENGTH);
 
     print_list(potter);
     print_list(feynman);
@@ -63,7 +63,7 @@ int main(void)
     print_list(potter); // inserted data removed from list, memory that has initially been allocated by init_list(&fph_values, FPH_SERIES_LENGTH) got released by delete_nth()
 
     free_list(&potter);
-    free_list(&feynman); // already been freed, but this won't cause an error due to the NULL-pointer guard
+    free_list(&feynman); // demo - it has already been freed, but this won't cause an error due to the NULL-pointer guard
     print_list(potter);
 
     return 0;
