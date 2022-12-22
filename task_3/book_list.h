@@ -1,13 +1,13 @@
 
 typedef struct bookData 
 {
-    double price;
-    int pages;
-    float weight;
+    double price_GBP;
+    float weight_kg;
+    unsigned short pages;
     unsigned short year;
 
     // make flexible array members?
-    char name[20];
+    char name[100];
     char lang[20];
 } Value, *ValuePtr;
 typedef struct bookListElement Element, *ElementPtr;
@@ -30,5 +30,5 @@ void free_list(ListPtr list);
 
 void print_list(ListPtr list);
 int delete_nth(ListPtr list, unsigned int index);
-int append_elements(ListPtr list, ValuePtr values);
-int insert_elements(ListPtr list, ValuePtr values, unsigned int val_arrlen, unsigned int index);
+int append_elements(ListPtr src, ListPtr dest);
+int insert_elements(ListPtr src, ListPtr dest, unsigned int dest_index);

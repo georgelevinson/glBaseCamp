@@ -3,6 +3,8 @@
 #include <string.h>
 #include "book_list.h"
 
+#define MAX_BOOKDATA_STRLEN 350
+
 ElementPtr get_nth(ListPtr list, unsigned int index)
 {
     if(list == NULL || list->first == NULL || list->last == NULL || (list->length - 1) < index)
@@ -10,10 +12,10 @@ ElementPtr get_nth(ListPtr list, unsigned int index)
         return NULL;
     }
     
-    ElementPtr curr;
+    ElementPtr curr = NULL;
 
     // conditional branching optimizes the number of loop iterations
-    if(index < list->length/2)
+    if(index <= list->length/2)
     {
         curr = list->first;
 
@@ -30,13 +32,13 @@ ElementPtr get_nth(ListPtr list, unsigned int index)
     {
         curr = list->last;
 
-        for (int i = 0; i < (list->length - index - 1); i--) // off by one?
+        for (int i = 0; i < (list->length - index - 1); i++) // off by one?
         {
             if(curr == NULL)
             {
                 break;
             }
-            curr = curr->next;
+            curr = curr->prev;
         }
     }
     
@@ -126,7 +128,7 @@ int delete_nth(ListPtr list, unsigned int index)
 };
 // this function sews two lists at a given joint element, thus src->first becomes [dest_index]`th element of dest list,
 // while the rest of dest (meaning elements starting with the original [dest_index]`th element) gets appended to the end of resulting list
-int merge_lists(ListPtr src, ListPtr dest, int dest_index)
+int insert_elements(ListPtr src, ListPtr dest, unsigned int dest_index)
 {
     if(src == NULL)
     {
@@ -170,47 +172,36 @@ int merge_lists(ListPtr src, ListPtr dest, int dest_index)
     free(src);
     return 1;
 };
-int insert_elements(ListPtr list, ValuePtr values, unsigned int val_arrlen, unsigned int index)
+int append_elements(ListPtr src, ListPtr dest)
 {
-    ListPtr newlist = init_list(values, val_arrlen);
-
-    return merge_lists(newlist, list, index);
-};
-int append_elements(ListPtr list, ValuePtr values, unsigned int val_arrlen)
-{
-    return insert_elements(list, values, val_arrlen, list->length);
+    return insert_elements(src, dest, dest->length);
 };
 char * bookdata_tostring(Value value)
 {
-    char * result = (char*)calloc(80, sizeof(char));
+    char * result = (char*)calloc(MAX_BOOKDATA_STRLEN, sizeof(char));
 
-    sprintf(result, "\n\r\n\rBook Name: %s;\n\rPublication year: %i;\n\rNo.Pages: %i;\n\rLanguage: %s;\n\rBook Price: %f;\n\rBook Weight: %f;", value.name, value.year, value.pages, value.lang, value.price, value.weight);
+    sprintf(result, "\n\r\n\rBook Name: %s;\n\rPublication year: %i;\n\rNo.Pages: %i;\n\rLanguage: %s;\n\rBook Price: %f;\n\rBook Weight: %f;", value.name, value.year, value.pages, value.lang, value.price_GBP, value.weight_kg);
 
-    printf("bookdata_tostring(): strlen = %i (is it 80??)", strlen(result)); // realloc memory if strlen works as expected ()
-
-    return result;
+    return (char*)realloc(result, sizeof(char) * (strlen(result) + 1));
 }
 void print_list(ListPtr list)
 {
+    printf("\n\nCURRENT LIST\n\n");
+
     if(list == NULL)
     {
-        printf("\n[NULL]\n\n");
+        printf("\n\n [ NULL ] \n\n");
     }
 
     ElementPtr curr = list->first;
 
     printf("\n");
 
-    for (int i = 0; i < (list->length - 1); i++)
+    for (int i = 0; i < list->length; i++)
     {
         if(curr == NULL)
         {
             break;
-        }
-
-        if((i) % 4 == 0)
-        {
-            printf("%2i - %2i: ", i, i + 3);
         }
 
         char * curr_str = bookdata_tostring(curr->value);
@@ -219,13 +210,8 @@ void print_list(ListPtr list)
 
         free(curr_str);
 
-        if((i + 1) % 4 == 0)
-        {
-            printf("\n");
-        }
-
         curr = curr->next;
     }
-    printf("\nLength: %i", list->length);
+    printf("\nLIST LENGTH: %i", list->length);
     printf("\n\n");
 };
