@@ -1,12 +1,11 @@
 #include <stdlib.h>
-#include <stdbool.h>
 #include "stack.h"
 
 CrossingsStackPtr stack_init(Point top)
 {
     CrossingsStackPtr result = calloc(1, sizeof(CrossingsStack));
-    CrossingsStack stack = {{top.x, top.y}, false, false, false, false};
-    *result = stack;
+    (*result).top = top;
+    (*result).next = NULL;
 
     return result;
 };

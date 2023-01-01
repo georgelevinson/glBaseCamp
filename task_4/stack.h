@@ -1,18 +1,10 @@
+#include <stdio.h>
 #include "point.h"
-
-typedef struct Crossing
-{
-    Point coord;
-    bool north;
-    bool east;
-    bool south;
-    bool west;
-} Crossing;
 
 typedef struct CrossingsStack CrossingsStack, *CrossingsStackPtr;
 struct CrossingsStack
 {
-    Crossing top;
+    Point top;
     CrossingsStackPtr next;
 };
 
