@@ -1,5 +1,13 @@
+#include <stdbool.h>
+#include "stack.h"
 #define UINT32_BIT_LEN 32
 #define UINT32_LAST_BIT 2147483648
+
+#define NON_ALIGNED_DIRECTIONS(offset, index) ((offset % 2) != i)
+#define NORTH 0
+#define EAST 1
+#define SOUTH 2
+#define WEST 3
 
 // all types and functions for task (including the exit search algorithm) will be implemented with the following 
 // presumptions about the maze in mind: 
@@ -12,12 +20,8 @@
 
 // passage width must be equal to one
 
-typedef struct point
-{
-    unsigned short x;
-    unsigned short y;
-} Point, *PointPtr;
-typedef struct maze
+
+typedef struct Maze
 {
     int arr[UINT32_BIT_LEN];
     unsigned short height;
@@ -25,7 +29,29 @@ typedef struct maze
     Point spawn;
 } Maze, *MazePtr;
 
+struct Map;
+typedef bool (*Move)(MazePtr maze, struct Map * m);
+
+struct Map 
+{
+    Move move_north;
+    Move move_east;
+    Move move_south;
+    Move move_west;
+    
+    PointPtr curr;
+    CrossingsStackPtr crossings;
+
+    bool north;
+    bool east;
+    bool south;
+    bool west;
+    int base_direction; // - indicates the current direction that's being tried
+};
+typedef struct Map Map, *MapPtr;
+
 void print_maze(MazePtr maze);
+bool find_exit(MazePtr maze, PointPtr position);
 
 // 11111111111111110000000000000000
 // 10100000000001010000000000000000
