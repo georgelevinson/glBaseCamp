@@ -23,7 +23,7 @@
 
 typedef struct Maze
 {
-    int arr[UINT32_BIT_LEN];
+    unsigned int arr[UINT32_BIT_LEN];
     unsigned short height;
     unsigned short width;
     Point spawn;

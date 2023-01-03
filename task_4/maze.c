@@ -13,10 +13,23 @@
 
 #define MOV_BY_PTR(maze, map, offset) (*(Move *)((void*)map + sizeof(void*) * offset))(maze, map)
 #define GET_INT(maze, y) 
+#define ARR_LAST_IDX 31
 
 unsigned int get_row(MazePtr maze, int y)
 {
-    int row_no = (maze->height) - y;
+    // this "flips" the row sequence such that we can index rows as if they are in the first quadrant of Decart coordinate system 
+
+    // 32         (32,32)
+    // ...
+    // 5 0 0 0 0
+    // 4 0 0 0 0
+    // 3 0 0 X 0
+    // 2 0 0 0 0
+    // 1 2 3 4 5 ... 32
+
+    // so bit X is considered to have coordinates of (4,3) while being the 4th BigEndian bit of integer at maze.arr[31-3]
+
+    int row_no = ARR_LAST_IDX - y; 
 
     if(row_no < 1)
     {
@@ -34,15 +47,9 @@ void print_row(unsigned int row, unsigned short len)
     if(!len)
         len = UINT32_BIT_LEN;
         
-    printf("\n\n");
     for (int i = 0; i < len; i++)
     {
-        if(i%4 == 0)
-        {
-            printf("  ");
-        }
-        
-        printf("%i", bit_presence_check(row, len));
+        printf("    %i", bit_presence_check(row, i));
     }
     printf("\n\n"); 
 }
@@ -52,9 +59,18 @@ void print_maze(MazePtr maze)
 
     for (short i = 0; i < m.height; i++)
     {
+        printf("(%02d)", (m.height - i));
         print_row(m.arr[i], m.width);
     }
-    
+
+    printf("     ");
+
+    for (short i = 1; i <= m.width; i++)
+    {
+        printf("  (%d)", (i%10));
+    }
+
+    printf("\n\n");
 }
 
 bool goes_north(MazePtr maze, Point position)
