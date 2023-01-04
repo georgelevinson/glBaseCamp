@@ -7,3 +7,4 @@ typedef struct Point
 } Point, *PointPtr;
 
 bool cmpr_pts(Point a, Point b);
+void print_point(Point p);

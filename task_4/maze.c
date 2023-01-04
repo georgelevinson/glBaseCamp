@@ -11,27 +11,30 @@
     // offset parameter is used to 'memorize' current direction and try it again on each successive iteration
     // this greatly improves efficiency by reducing the amount of calls to the function (you turn less than procees in the same direction)
 
-#define MOV_BY_PTR(maze, map, offset) (*(Move *)((void*)map + sizeof(void*) * offset))(maze, map)
-#define GET_INT(maze, y) 
+#define MOV_BY_PTR(maze, map, offset) (*(Move *)((void*)map + sizeof(void*) * offset))(maze, map) // - why do I need to multiply by sizeof tho??
 #define ARR_LAST_IDX 31
+
+static const Point empty;
 
 unsigned int get_row(MazePtr maze, int y)
 {
+    
     // this "flips" the row sequence such that we can index rows as if they are in the first quadrant of Decart coordinate system 
 
-    // 32         (32,32)
+    // 31         (32,32)
     // ...
-    // 5 0 0 0 0
-    // 4 0 0 0 0
-    // 3 0 0 X 0
-    // 2 0 0 0 0
-    // 1 2 3 4 5 ... 32
+    // 5 0 0 0 0 0
+    // 4 0 0 0 0 0
+    // 3 0 0 X 0 0
+    // 2 0 0 0 0 0
+    // 1 0 0 0 0 0
+    // 0 1 2 3 4 5 ... 31
 
     // so bit X is considered to have coordinates of (4,3) while being the 4th BigEndian bit of integer at maze.arr[31-3]
 
     int row_no = ARR_LAST_IDX - y; 
 
-    if(row_no < 1)
+    if(row_no < 0)
     {
         return 0;
     }
@@ -59,13 +62,13 @@ void print_maze(MazePtr maze)
 
     for (short i = 0; i < m.height; i++)
     {
-        printf("(%02d)", (m.height - i));
+        printf("(%02d)", (m.height - i - 1));
         print_row(m.arr[i], m.width);
     }
 
     printf("     ");
 
-    for (short i = 1; i <= m.width; i++)
+    for (short i = 0; i < m.width; i++)
     {
         printf("  (%d)", (i%10));
     }
@@ -118,13 +121,31 @@ bool goes_west(MazePtr maze, Point position)
     }
 }
 
-bool is_crossroads(MazePtr maze, Point position)
+bool check_crossroads(MazePtr maze, MapPtr map)
 {
-    int result = goes_north(maze, position) + goes_east(maze, position) + goes_south(maze, position) + goes_west(maze, position);
+    bool nesw[4];
+    nesw[0] = goes_north(maze, map->curr);
+    nesw[1] = goes_east(maze, map->curr);
+    nesw[2] = goes_south(maze, map->curr);
+    nesw[3] = goes_west(maze, map->curr);
 
-    if(result > 1)
+    if(nesw[0] + nesw[1] + nesw[2] + nesw[3] > 2)
     {
-        return true;   
+        stack_push(map);
+        unsigned opdir = (map->base_direction + 2) > 3 ? map->base_direction % 2 : map->base_direction + 2;
+
+        for(unsigned i = 0; i < 4; i++)
+        {
+            // accessing struct members by offset pointer
+            // the NON_ALLIGNED_DIRECTIONS() condition exclueds the direction that we approached
+            // the crossing from as well as the one that we're gonna continue moving in
+            // (which, from the point of view of the crossing, are opposite)
+            
+            *((bool*)(map->crossings) + i) = nesw[i] && (NON_ALIGNED_DIRECTIONS(map->base_direction, i));
+        }
+
+
+        return true;
     }
     else
     {
@@ -134,16 +155,20 @@ bool is_crossroads(MazePtr maze, Point position)
 
 bool pop_or_drop(MazePtr maze, MapPtr map);
 
+// recursively finds exit from a maze and assigns it's coordinates to the struct pointed to by the position parameter
 bool find_recursive(MazePtr maze, MapPtr map)
 {
+    print_point(map->curr);
+
     if(map->curr.x == 0 || map->curr.x == (maze->width - 1) || map->curr.y == 0 || map->curr.y == (maze->height - 1))
     {
+        maze->exit = map->curr;
         return true;
     }
-    
-    if(!(cmpr_pts(map->crossings->top, map->curr)) && is_crossroads(maze, map->curr))
+
+    if(!cmpr_pts(map->crossings->top, map->curr)) // to avoid excess crossings on start and and endless loop on return to point for another turn
     {
-        stack_push(map->crossings, map->curr);
+        check_crossroads(maze, map);
     }
 
     if(MOV_BY_PTR(maze, map, map->base_direction))
@@ -158,52 +183,71 @@ bool find_recursive(MazePtr maze, MapPtr map)
         // direction (made earlier) and going back the way we came
         if(NON_ALIGNED_DIRECTIONS(map->base_direction, i) && MOV_BY_PTR(maze, map, i))
         {
+            map->base_direction = i;
+            
             return find_recursive(maze, map);
         }
     }
 
-    switch (map->base_direction)
+    // at this point we, based on the previously checked conditions must be in a dead end somewhere 
+    // and must return to either previous crossing or the one before that (in case we've just gone down the last split of the previous one)
+    if(map->crossings->north)
     {
-        case NORTH:
-            map->base_direction = EAST;
+        map->curr = map->crossings->top;
+        map->crossings->north = false;
+        map->base_direction = NORTH;
 
-            return find_recursive(maze, map);
-            break;
+        return find_recursive(maze, map);
+    }
+    else if(map->crossings->east)
+    {
+        map->curr = map->crossings->top;
+        map->crossings->east = false;
+        map->base_direction = EAST;
 
-        case EAST:
-            map->base_direction = SOUTH;
+        return find_recursive(maze, map);
+    }
+    else if(map->crossings->south)
+    {
+        map->curr = map->crossings->top;
+        map->crossings->south = false;
+        map->base_direction = SOUTH;
 
-            return find_recursive(maze, map);
-            break;
+        return find_recursive(maze, map);
+    }
+    else if(map->crossings->west)
+    {
+        map->curr = map->crossings->top;
+        map->crossings->west = false;
+        map->base_direction = WEST;
 
-        case SOUTH:
-            map->base_direction = WEST;
-            
-            return find_recursive(maze, map);
-            break;
-
-        case WEST:
-            return pop_or_drop(maze, map);
-
-        default:
-            return false;
+        return find_recursive(maze, map);
+    }
+    else
+    {
+        return pop_or_drop(maze, map);
     }
 }
 
 bool pop_or_drop(MazePtr maze, MapPtr map)
 {
-    CrossingsStackPtr stack = stack_pop(map->crossings);
-
-    if(stack != NULL)
+    do
     {
-        map->base_direction = NORTH;
-        map->curr = stack->top;
-                
+        map->crossings = stack_pop(map->crossings);
+    } 
+    while(!(map->crossings->north || map->crossings->east || map->crossings->south || map->crossings->west) && map->crossings != NULL);
+
+    if(map->crossings != NULL)
+    {
+        map->base_direction = NORTH * map->crossings->north + EAST * map->crossings->east + 
+                              SOUTH * map->crossings->south + WEST * map->crossings->west;
+        map->curr = map->crossings->top;
+
         return find_recursive(maze, map);
     }
     else
     {
-        map->base_direction = -1;
+        map->base_direction = -1; // might cause segfault?? - need to check
         return false;
     }
 }
@@ -258,11 +302,14 @@ bool move_west(MazePtr maze, MapPtr map)
 }
 
 // wrapper-function for find_recursive()
-// finds exit from a maze and assigns it's coordinates to the struct pointed to by the position parameter
+// initializes structures needed for recursive() to run and calls it
 // returns 1 on success and 0 on failure
 bool find_exit(MazePtr maze, Point start)
 {
-    Map map = { NULL, NULL, NULL, NULL, start, stack_init(start), NORTH };
+    Map map = { NULL, NULL, NULL, NULL, start, stack_init(start), SOUTH};
+
+    check_crossroads(maze, &map);
+
     map.move_north = move_north;
     map.move_south = move_south;
     map.move_east = move_east;

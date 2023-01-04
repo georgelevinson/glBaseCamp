@@ -11,3 +11,7 @@ bool cmpr_pts(Point a, Point b)
         return false;
     }
 };
+void print_point(Point p)
+{
+    printf("\n\nx: %i; y: %i\n\n", p.x, p.y);
+}

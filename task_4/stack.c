@@ -1,11 +1,12 @@
 #include <stdlib.h>
-#include "stack.h"
+#include <stdio.h>
+#include "maze.h"
 
 CrossingsStackPtr stack_init(Point top)
 {
     CrossingsStackPtr result = calloc(1, sizeof(CrossingsStack));
     (*result).top = top;
-    (*result).next = NULL;
+    // (*result).next = NULL; - calloc should allocate zeroed-out memory anyway
 
     return result;
 };
@@ -18,18 +19,19 @@ CrossingsStackPtr stack_pop(CrossingsStackPtr stack)
     free(stack);
     return top;
 };
-CrossingsStackPtr stack_push(CrossingsStackPtr stack, Point top)
+bool stack_push(MapPtr map)
 {
-    if(stack == NULL)
+    if(map == NULL || map->crossings == NULL)
     {
-        printf("Empty stack passed to stack_push()");
-        return NULL;
+        printf("\n\nInvalid data passed to stack_push()\n\n");
+        return false;
     }
     
-    CrossingsStackPtr result = stack_init(top);
-    result->next = stack;
+    CrossingsStackPtr result = stack_init(map->curr);
+    result->next = map->crossings;
+    map->crossings = result;
 
-    return result;
+    return true;
 };
 CrossingsStackPtr stack_peek(CrossingsStackPtr stack)
 {

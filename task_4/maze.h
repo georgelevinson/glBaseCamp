@@ -1,9 +1,9 @@
-#include "stack.h"
+#include "point.h"
 
 #define UINT32_BIT_LEN 32
 #define UINT32_LAST_BIT 2147483648
 
-#define NON_ALIGNED_DIRECTIONS(offset, index) ((offset % 2) != i)
+#define NON_ALIGNED_DIRECTIONS(offset, index) ((offset % 2) != (i % 2))
 #define NORTH 0
 #define EAST 1
 #define SOUTH 2
@@ -27,11 +27,23 @@ typedef struct Maze
     unsigned short height;
     unsigned short width;
     Point spawn;
+    Point exit;
 } Maze, *MazePtr;
 
 struct Map;
 typedef bool (*Move)(MazePtr maze, struct Map * m);
+typedef struct CrossingsStack CrossingsStack, *CrossingsStackPtr;
 
+struct CrossingsStack
+{
+    bool north;
+    bool east;
+    bool south;
+    bool west;
+    
+    Point top;
+    CrossingsStackPtr next;
+};
 struct Map 
 {
     Move move_north;
@@ -44,6 +56,11 @@ struct Map
     int base_direction;
 };
 typedef struct Map Map, *MapPtr;
+
+bool stack_push(MapPtr map);
+CrossingsStackPtr stack_init(Point top);
+CrossingsStackPtr stack_pop(CrossingsStackPtr stack);
+CrossingsStackPtr stack_peek(CrossingsStackPtr stack); // ??
 
 void print_maze(MazePtr maze);
 bool find_exit(MazePtr maze, Point start);
