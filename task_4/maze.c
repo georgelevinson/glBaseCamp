@@ -181,7 +181,16 @@ bool find_recursive(MazePtr maze, MapPtr map)
         // NON_ALIGNED_DIRECTIONS condition holds when index points to a direction that's non-alligned
         // with the direction pointed to by offset parameter, thus avoiding a redundant call in the offset
         // direction (made earlier) and going back the way we came
-        if(NON_ALIGNED_DIRECTIONS(map->base_direction, i) && MOV_BY_PTR(maze, map, i))
+        if(NON_ALIGNED_DIRECTIONS(map->base_direction, i) && cmpr_pts((map->curr), (map->crossings->top)) && MOV_BY_PTR(maze, map, i))
+        {
+            // this conditional branch is needed to handle the case when there's a turn at a crossroad
+            // the direction bool has to be updated to avoid an infinite loop
+            *((bool*)(map->crossings) + i) = false;
+            map->base_direction = i;
+            
+            return find_recursive(maze, map);
+        }
+        else if(NON_ALIGNED_DIRECTIONS(map->base_direction, i) && MOV_BY_PTR(maze, map, i))
         {
             map->base_direction = i;
             
@@ -235,7 +244,7 @@ bool pop_or_drop(MazePtr maze, MapPtr map)
     {
         map->crossings = stack_pop(map->crossings);
     } 
-    while(!(map->crossings->north || map->crossings->east || map->crossings->south || map->crossings->west) && map->crossings != NULL);
+    while(map->crossings != NULL && !(map->crossings->north || map->crossings->east || map->crossings->south || map->crossings->west));
 
     if(map->crossings != NULL)
     {
@@ -304,9 +313,9 @@ bool move_west(MazePtr maze, MapPtr map)
 // wrapper-function for find_recursive()
 // initializes structures needed for recursive() to run and calls it
 // returns 1 on success and 0 on failure
-bool find_exit(MazePtr maze, Point start)
+bool find_exit(MazePtr maze, Point start, int init_direction)
 {
-    Map map = { NULL, NULL, NULL, NULL, start, stack_init(start), SOUTH};
+    Map map = { NULL, NULL, NULL, NULL, start, stack_init(start), init_direction };
 
     check_crossroads(maze, &map);
 

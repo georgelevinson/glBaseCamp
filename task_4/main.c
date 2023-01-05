@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "maze.h" 
 
 static const Maze empty_maze;
@@ -18,8 +19,11 @@ int main(void)
         return 1;
 
 
-    // print_maze(&maze);
-    find_exit(&maze, maze.spawn);
+    if(find_exit(&maze, maze.spawn, SOUTH))
+    {
+        printf("\nMAZE SOLVED! EXIT POINT:");
+        print_point(maze.exit);
+    }
 
     return 0;
 }

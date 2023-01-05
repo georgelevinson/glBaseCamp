@@ -63,7 +63,7 @@ CrossingsStackPtr stack_pop(CrossingsStackPtr stack);
 CrossingsStackPtr stack_peek(CrossingsStackPtr stack); // ??
 
 void print_maze(MazePtr maze);
-bool find_exit(MazePtr maze, Point start);
+bool find_exit(MazePtr maze, Point start, int init_direction);
 
 // 11111111111111110000000000000000 = 4294901760
 // 10100000000001010000000000000000 = 2684682240
