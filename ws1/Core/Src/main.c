@@ -51,14 +51,33 @@ volatile uint16_t interval = DEFAULT_INTERVAL;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
+
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
+
+static void SpeedUp(void);
+static void SlowDown(void);
+static void ChangeDirection(void);
+static void Deactivate_Blink(void);
+static void ChangeScheme(void);
+
+static void BlinkDefault(void);
+static void BlinkSkip(void);
+static void BlinkAll(void);
+
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+
+static uint8_t counter = 0;
+static uint16_t led_pins[4] = {GPIO_PIN_12,GPIO_PIN_13,GPIO_PIN_14,GPIO_PIN_15};
+static uint8_t scheme_counter = 0;
+static uint8_t skip_counter = 0;
+static void (*blink_ptrs[3])(void) = { &BlinkDefault, &BlinkSkip, &BlinkAll };
+static void (*exec_ptr)(void) = &BlinkDefault;
 
 /* USER CODE END 0 */
 
@@ -91,10 +110,6 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   /* USER CODE BEGIN 2 */
-
-  uint8_t counter = 0;
-  uint16_t led_pins[4] = {GPIO_PIN_12,GPIO_PIN_13,GPIO_PIN_14,GPIO_PIN_15};
-
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -103,14 +118,12 @@ int main(void)
   {
 	if(status)
 	{
-		HAL_GPIO_TogglePin(GPIOD, led_pins[counter % 4]);
-		HAL_Delay(interval);
-		HAL_GPIO_TogglePin(GPIOD, led_pins[counter % 4]);
-
-		counter += direction;
+		(*exec_ptr)();
 	}
 	if(led_reset)
 	{
+		counter = 0;
+
 		for(int i = 0; i < 4; i++)
 		{
 			HAL_GPIO_WritePin(GPIOD, led_pins[i], GPIO_PIN_RESET);
@@ -236,11 +249,11 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 		case SLOWDOWN_PIN:
 			SlowDown();
 			break;
-		case FWD_PIN:
-			SetDirectionFwd();
+		case DIR_PIN:
+			ChangeDirection();
 			break;
-		case BWD_PIN:
-			SetDirectionBwd();
+		case SCHEME_PIN:
+			ChangeScheme();
 			break;
 		case DEACTIVATE_BLINK_PIN:
 			Deactivate_Blink();
@@ -248,40 +261,76 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 	}
 }
 
-void SpeedUp()
+static void SpeedUp(void)
 {
 	if(interval > MIN_INTERVAL)
 	{
 		interval -= 100;
 	}
 }
-void SlowDown()
+static void SlowDown(void)
 {
 	if(interval < MAX_INTERVAL)
 	{
 		interval += 100;
 	}
 }
-void SetDirectionFwd()
+static void ChangeDirection(void)
 {
-	direction = FORWARDS;
+	direction *= -1;
 }
-void SetDirectionBwd()
+static void ChangeScheme(void)
 {
-	direction = BACKWARDS;
+	led_reset = IS_ACTIVE;
+
+	scheme_counter = ++scheme_counter % 3;
+
+	exec_ptr = blink_ptrs[scheme_counter];
 }
-void Deactivate_Blink()
+static void Deactivate_Blink(void)
 {
 	if(status)
-	  {
-		  status = IS_NOT_ACTIVE;
-		  led_reset = IS_ACTIVE;
-	  }
-	  else
-	  {
-		  status = 1;
-	  }
+	{
+		status = IS_NOT_ACTIVE;
+		led_reset = IS_ACTIVE;
+	}
+	else
+	{
+		status = 1;
+	}
 }
+
+static void BlinkDefault(void)
+{
+	HAL_GPIO_TogglePin(GPIOD, led_pins[counter % 4]);
+	HAL_Delay(interval);
+	HAL_GPIO_TogglePin(GPIOD, led_pins[counter % 4]);
+
+	counter += direction;
+}
+static void BlinkSkip(void)
+{
+	for(uint8_t i = 0; i < 2; i++)
+	{
+		HAL_GPIO_TogglePin(GPIOD, led_pins[counter % 4 + skip_counter % 2]);
+		HAL_Delay(interval);
+		HAL_GPIO_TogglePin(GPIOD, led_pins[counter % 4 + skip_counter % 2]);
+
+		counter += 2 * direction;
+	}
+
+	skip_counter++;
+}
+static void BlinkAll(void)
+{
+	for(uint8_t i = 0; i < 4; i++)
+	{
+		HAL_GPIO_TogglePin(GPIOD, led_pins[i]);
+	}
+
+	HAL_Delay(interval);
+}
+
 /* USER CODE END 4 */
 
 /**
