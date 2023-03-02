@@ -287,7 +287,7 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 	switch(GPIO_Pin)
 	{
 		case SPEEDUP_PIN:
-			if(curr_freq < CLOCK_FREQ)
+			if(curr_freq < MAX_OUT_FREQ)
 				curr_freq += 5000;
 				TIM4->ARR = (CLOCK_FREQ/curr_freq) - 1;
 				UpdateDutyCycle(TIM4);
@@ -311,7 +311,7 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 		case DUTYCYCLE_SUB_PIN:
 			if(curr_duty_percent > 0)
 			{
-				curr_duty_percent += 5;
+				curr_duty_percent -= 5;
 				UpdateDutyCycle(TIM4);
 			}
 			break;
