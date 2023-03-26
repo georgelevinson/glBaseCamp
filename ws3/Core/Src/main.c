@@ -42,7 +42,9 @@
 ADC_HandleTypeDef hadc1;
 DMA_HandleTypeDef hdma_adc1;
 
+TIM_HandleTypeDef htim3;
 TIM_HandleTypeDef htim4;
+TIM_HandleTypeDef htim5;
 
 /* USER CODE BEGIN PV */
 
@@ -54,19 +56,25 @@ static void MX_GPIO_Init(void);
 static void MX_DMA_Init(void);
 static void MX_ADC1_Init(void);
 static void MX_TIM4_Init(void);
-static void SetDutyCycles(void);
+static void MX_TIM3_Init(void);
+static void MX_TIM5_Init(void);
 /* USER CODE BEGIN PFP */
-
+static void HandleDataAndUpdate();
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
-volatile uint16_t ADC_CONV_RES[9];
-uint32_t dutycycle_percent_ch1 = 50;
-uint32_t dutycycle_percent_ch2 = 50;
-uint32_t dutycycle_percent_ch3 = 50;
-uint32_t dutycycle_percent_ch4 = 0;
+volatile uint16_t __attribute__((aligned(2))) ADC_CONV_RES[3];
+volatile uint8_t adc_dma_complete = 0;
+
+static float temp_ext_deg;
+static float temp_intr_deg;
+static float pot_mV;
+static uint16_t emergency_status;
+static uint32_t dutycycle_percent_ch1 = 50;
+static uint32_t dutycycle_percent_ch2 = 50;
+static uint32_t dutycycle_percent_ch4 = 50;
 
 /* USER CODE END 0 */
 
@@ -77,6 +85,7 @@ uint32_t dutycycle_percent_ch4 = 0;
 int main(void)
 {
   /* USER CODE BEGIN 1 */
+
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -100,21 +109,28 @@ int main(void)
   MX_DMA_Init();
   MX_ADC1_Init();
   MX_TIM4_Init();
+  MX_TIM3_Init();
+  MX_TIM5_Init();
   /* USER CODE BEGIN 2 */
 
-  SetDutyCycles();
   HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_1);
   HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_2);
   HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_3);
   HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_4);
+  HAL_TIM_Base_Start_IT(&htim3);
+  HAL_TIM_Base_Start_IT(&htim5);
 
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+
   while (1)
   {
-	HAL_ADC_Start_DMA(&hadc1, (uint32_t *)&ADC_CONV_RES[0], 9);
+	if(adc_dma_complete)
+	{
+		HandleDataAndUpdate();
+	}
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -191,7 +207,7 @@ static void MX_ADC1_Init(void)
   hadc1.Init.ClockPrescaler = ADC_CLOCK_SYNC_PCLK_DIV2;
   hadc1.Init.Resolution = ADC_RESOLUTION_12B;
   hadc1.Init.ScanConvMode = ENABLE;
-  hadc1.Init.ContinuousConvMode = ENABLE;
+  hadc1.Init.ContinuousConvMode = DISABLE;
   hadc1.Init.DiscontinuousConvMode = DISABLE;
   hadc1.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
   hadc1.Init.ExternalTrigConv = ADC_SOFTWARE_START;
@@ -234,6 +250,51 @@ static void MX_ADC1_Init(void)
   /* USER CODE BEGIN ADC1_Init 2 */
 
   /* USER CODE END ADC1_Init 2 */
+
+}
+
+/**
+  * @brief TIM3 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM3_Init(void)
+{
+
+  /* USER CODE BEGIN TIM3_Init 0 */
+
+  /* USER CODE END TIM3_Init 0 */
+
+  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+
+  /* USER CODE BEGIN TIM3_Init 1 */
+
+  /* USER CODE END TIM3_Init 1 */
+  htim3.Instance = TIM3;
+  htim3.Init.Prescaler = 1;
+  htim3.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim3.Init.Period = 1000-1;
+  htim3.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim3.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim3) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim3, &sClockSourceConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim3, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM3_Init 2 */
+
+  /* USER CODE END TIM3_Init 2 */
 
 }
 
@@ -293,10 +354,6 @@ static void MX_TIM4_Init(void)
   {
     Error_Handler();
   }
-  if (HAL_TIM_PWM_ConfigChannel(&htim4, &sConfigOC, TIM_CHANNEL_3) != HAL_OK)
-  {
-    Error_Handler();
-  }
   if (HAL_TIM_PWM_ConfigChannel(&htim4, &sConfigOC, TIM_CHANNEL_4) != HAL_OK)
   {
     Error_Handler();
@@ -305,6 +362,51 @@ static void MX_TIM4_Init(void)
 
   /* USER CODE END TIM4_Init 2 */
   HAL_TIM_MspPostInit(&htim4);
+
+}
+
+/**
+  * @brief TIM5 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM5_Init(void)
+{
+
+  /* USER CODE BEGIN TIM5_Init 0 */
+
+  /* USER CODE END TIM5_Init 0 */
+
+  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+
+  /* USER CODE BEGIN TIM5_Init 1 */
+
+  /* USER CODE END TIM5_Init 1 */
+  htim5.Instance = TIM5;
+  htim5.Init.Prescaler = 2000;
+  htim5.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim5.Init.Period = 500;
+  htim5.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim5.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim5) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim5, &sClockSourceConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim5, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM5_Init 2 */
+  __HAL_RCC_TIM5_CLK_DISABLE();
+  /* USER CODE END TIM5_Init 2 */
 
 }
 
@@ -331,32 +433,91 @@ static void MX_DMA_Init(void)
   */
 static void MX_GPIO_Init(void)
 {
+  GPIO_InitTypeDef GPIO_InitStruct = {0};
 
   /* GPIO Ports Clock Enable */
   __HAL_RCC_GPIOH_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
   __HAL_RCC_GPIOD_CLK_ENABLE();
 
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_14, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin : PD14 */
+  GPIO_InitStruct.Pin = GPIO_PIN_14;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
+
 }
 
 /* USER CODE BEGIN 4 */
-static void SetDutyCycles()
+static void UpdateEmergencyStatus()
+{
+	emergency_status = (temp_intr_deg >= HIGH_TEMP_deg) + (temp_ext_deg >= HIGH_TEMP_deg) + (pot_mV >= HighVoltage_mV);
+
+	switch(emergency_status)
+	{
+		case 1:
+			TIM5->ARR = CLK_FREQ/(TIM5->PSC * EMGCY_CaseOne_Hz);
+			__HAL_RCC_TIM5_CLK_ENABLE();
+			break;
+		case 2:
+			TIM5->ARR = CLK_FREQ/(TIM5->PSC * EMGCY_CaseTwo_Hz);
+			__HAL_RCC_TIM5_CLK_ENABLE();
+			break;
+		case 3:
+
+			TIM5->ARR = CLK_FREQ/(TIM5->PSC * EMGCY_CaseThree_Hz);
+			__HAL_RCC_TIM5_CLK_ENABLE();
+			break;
+		default:
+			__HAL_RCC_TIM5_CLK_DISABLE();
+			HAL_GPIO_WritePin(GPIOD, GPIO_PIN_14, GPIO_PIN_RESET);
+			break;
+	}
+}
+static void CalcDutyCycles()
+{
+	dutycycle_percent_ch1 = ((temp_intr_deg - MIN_TEMP_deg)/TEMP_INTERVAL_deg) * 100;
+	dutycycle_percent_ch2 = (pot_mV/Vdd_mV) * 100;
+	dutycycle_percent_ch4 = ((temp_ext_deg - MIN_TEMP_deg)/TEMP_INTERVAL_deg) * 100;
+}
+static void UpdateDutyCycles()
 {
 	TIM4->CCR1 = (TIM4->ARR + 1) * dutycycle_percent_ch1/100;
 	TIM4->CCR2 = (TIM4->ARR + 1) * dutycycle_percent_ch2/100;
-	TIM4->CCR3 = (TIM4->ARR + 1) * dutycycle_percent_ch3/100;
 	TIM4->CCR4 = (TIM4->ARR + 1) * dutycycle_percent_ch4/100;
+}
+static void HandleDataAndUpdate()
+{
+	temp_intr_deg	= 	Tcurr_INTR_deg(ADC_CONV_RES[0]);
+	temp_ext_deg	=	Tcurr_EXT_deg(ADC_CONV_RES[2]);
+	pot_mV 			= 	INP_mV(ADC_CONV_RES[1]);
+
+	CalcDutyCycles();
+	UpdateDutyCycles();
+	UpdateEmergencyStatus();
+}
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim)
+{
+	if(htim->Instance == TIM3)
+	{
+		HAL_ADC_Start_DMA(&hadc1, (uint32_t*)&ADC_CONV_RES[0], 3);
+		adc_dma_complete = 0;
+		HandleDataAndUpdate();
+	}
 }
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 {
-//	dutycycle_percent_ch1 = 100 * ADC_CONV_RES[0] / MAX12BIT;
-//	dutycycle_percent_ch2 = 100 * ADC_CONV_RES[1] / MAX12BIT;
-//	dutycycle_percent_ch4 = 100 * ADC_CONV_RES[2] / MAX12BIT;
-//
-//	dutycycle_percent_ch3 = 0;
-//
-//	SetDutyCycles();
+    if (hadc == &hadc1) {
+        HAL_ADC_Stop_DMA(&hadc1);
+        adc_dma_complete = 1;
+        HandleDataAndUpdate();
+    }
 }
+
 /* USER CODE END 4 */
 
 /**
