@@ -388,7 +388,7 @@ static void MX_TIM5_Init(void)
   htim5.Init.CounterMode = TIM_COUNTERMODE_UP;
   htim5.Init.Period = 500;
   htim5.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
-  htim5.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  htim5.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_ENABLE;
   if (HAL_TIM_Base_Init(&htim5) != HAL_OK)
   {
     Error_Handler();
@@ -405,7 +405,6 @@ static void MX_TIM5_Init(void)
     Error_Handler();
   }
   /* USER CODE BEGIN TIM5_Init 2 */
-  __HAL_RCC_TIM5_CLK_DISABLE();
   /* USER CODE END TIM5_Init 2 */
 
 }
@@ -460,22 +459,23 @@ static void UpdateEmergencyStatus()
 	switch(emergency_status)
 	{
 		case 1:
+			TIM5->CR1 = TIM5->CR1 | TIM_CEN_bit;
 			TIM5->ARR = CLK_FREQ/(TIM5->PSC * EMGCY_CaseOne_Hz);
-			__HAL_RCC_TIM5_CLK_ENABLE();
 			break;
 		case 2:
+			TIM5->CR1 = TIM5->CR1 | TIM_CEN_bit;
 			TIM5->ARR = CLK_FREQ/(TIM5->PSC * EMGCY_CaseTwo_Hz);
-			__HAL_RCC_TIM5_CLK_ENABLE();
 			break;
 		case 3:
-
+			TIM5->CR1 = TIM5->CR1 | TIM_CEN_bit;
 			TIM5->ARR = CLK_FREQ/(TIM5->PSC * EMGCY_CaseThree_Hz);
 			__HAL_RCC_TIM5_CLK_ENABLE();
 			break;
 		default:
-			__HAL_RCC_TIM5_CLK_DISABLE();
+			TIM5->CR1 = TIM5->CR1 - (TIM5->CR1 & TIM_CEN_bit);
+			TIM5->CNT = 0;
 			HAL_GPIO_WritePin(GPIOD, GPIO_PIN_14, GPIO_PIN_RESET);
-			break;
+			return;
 	}
 }
 static void CalcDutyCycles()

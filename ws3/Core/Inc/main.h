@@ -49,6 +49,7 @@ extern "C" {
 
 #define CLK_FREQ 				(float)(2000000)
 #define MAX12BIT 				(float)(4096)
+#define TIM_CEN_bit					   (0x01)
 #define Vdd_mV					(float)(3300.0)
 #define HighVoltage_mV			(float)(3000.0)
 
@@ -60,10 +61,10 @@ extern "C" {
 //frequency values for emergency blinking are doubled to avoid using float and to blink using GPIO_Toggle()
 /*---------------------------------------------*/
 
-#define MAX_TEMP_deg			(float)(100)
-#define HIGH_TEMP_deg			(float)(75)
+#define MAX_TEMP_deg			(float)(80)
+#define HIGH_TEMP_deg			(float)(50)
 #define MIN_TEMP_deg			(float)(10)
-#define TEMP_INTERVAL_deg		(float)(90)
+#define TEMP_INTERVAL_deg		(float)(70)
 #define AVG_SLP_INTR 			(float)(2.5)
 #define AVG_SLP_EXT 			(float)(-20.0)
 #define V_t0_INTR_mV 			(float)(760)
