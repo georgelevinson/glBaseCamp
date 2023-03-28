@@ -21,7 +21,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include <stdio.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -39,6 +39,10 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
+ADC_HandleTypeDef hadc1;
+
+TIM_HandleTypeDef htim2;
+
 UART_HandleTypeDef huart3;
 
 /* USER CODE BEGIN PV */
@@ -49,7 +53,8 @@ UART_HandleTypeDef huart3;
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_USART3_UART_Init(void);
-static void UART_Transmit_Toggle(void);
+static void MX_ADC1_Init(void);
+static void MX_TIM2_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -88,8 +93,11 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_USART3_UART_Init();
+  MX_ADC1_Init();
+  MX_TIM2_Init();
   /* USER CODE BEGIN 2 */
-  rx_status = HAL_UART_Receive_IT (&huart3, &input_buffer[0], 1);
+  HAL_TIM_Base_Start_IT(&htim2);
+  rx_status = HAL_UART_Receive_IT(&huart3, &input_buffer[0], 1);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -142,6 +150,103 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
+}
+
+/**
+  * @brief ADC1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_ADC1_Init(void)
+{
+
+  /* USER CODE BEGIN ADC1_Init 0 */
+
+  /* USER CODE END ADC1_Init 0 */
+
+  ADC_ChannelConfTypeDef sConfig = {0};
+
+  /* USER CODE BEGIN ADC1_Init 1 */
+
+  /* USER CODE END ADC1_Init 1 */
+
+  /** Configure the global features of the ADC (Clock, Resolution, Data Alignment and number of conversion)
+  */
+  hadc1.Instance = ADC1;
+  hadc1.Init.ClockPrescaler = ADC_CLOCK_SYNC_PCLK_DIV8;
+  hadc1.Init.Resolution = ADC_RESOLUTION_12B;
+  hadc1.Init.ScanConvMode = ENABLE;
+  hadc1.Init.ContinuousConvMode = DISABLE;
+  hadc1.Init.DiscontinuousConvMode = DISABLE;
+  hadc1.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
+  hadc1.Init.ExternalTrigConv = ADC_SOFTWARE_START;
+  hadc1.Init.DataAlign = ADC_DATAALIGN_RIGHT;
+  hadc1.Init.NbrOfConversion = 1;
+  hadc1.Init.DMAContinuousRequests = DISABLE;
+  hadc1.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
+  if (HAL_ADC_Init(&hadc1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /** Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time.
+  */
+  sConfig.Channel = ADC_CHANNEL_9;
+  sConfig.Rank = 1;
+  sConfig.SamplingTime = ADC_SAMPLETIME_3CYCLES;
+  if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN ADC1_Init 2 */
+
+  /* USER CODE END ADC1_Init 2 */
+
+}
+
+/**
+  * @brief TIM2 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM2_Init(void)
+{
+
+  /* USER CODE BEGIN TIM2_Init 0 */
+
+  /* USER CODE END TIM2_Init 0 */
+
+  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+
+  /* USER CODE BEGIN TIM2_Init 1 */
+
+  /* USER CODE END TIM2_Init 1 */
+  htim2.Instance = TIM2;
+  htim2.Init.Prescaler = 8000;
+  htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim2.Init.Period = 5000;
+  htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim2, &sClockSourceConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim2, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM2_Init 2 */
+
+  /* USER CODE END TIM2_Init 2 */
+
 }
 
 /**
@@ -225,31 +330,60 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
-static void UART_TransmitIT_TogglePin(void)
+static void UART_TransmitIT_TogglePin(uint8_t pin)
 {
-	switch (input_buffer[0])
+	switch (pin)
 	{
 		case '0':
 			HAL_GPIO_TogglePin(GPIOD, GREEN_LED);
-			HAL_UART_Transmit_IT(&huart3, (uint8_t *)(GPIOD->ODR & GREEN_LED ? "Toggle Green; Pin state: active;\n\r\0" : "Toggle Green; Pin state: inactive;\n\r\0"), OUT_BUFFER_LEN);
+			if(GPIOD->ODR & GREEN_LED)
+			{
+				HAL_UART_Transmit_IT(&huart3, (uint8_t *)"Toggle Green; Pin state: active;\n\r", 35);
+			}
+			else
+			{
+				HAL_UART_Transmit_IT(&huart3, (uint8_t *)"Toggle Green; Pin state: inactive;\n\r", 37);
+			}
 			break;
+
 		case '1':
 			HAL_GPIO_TogglePin(GPIOD, ORANGE_LED);
-			HAL_UART_Transmit_IT(&huart3, (uint8_t *)(GPIOD->ODR & ORANGE_LED ? "Toggle Orange; Pin state: active;\n\r\0" : "Toggle Orange; Pin state: inactive;\n\r\0"), OUT_BUFFER_LEN);
+			if(GPIOD->ODR & ORANGE_LED)
+			{
+				HAL_UART_Transmit_IT(&huart3, (uint8_t *)"Toggle Orange; Pin state: active;\n\r", 36);
+			}
+			else
+			{
+				HAL_UART_Transmit_IT(&huart3, (uint8_t *)"Toggle Orange; Pin state: inactive;\n\r", 38);
+			}
 			break;
 
 		case '2':
 			HAL_GPIO_TogglePin(GPIOD, RED_LED);
-			HAL_UART_Transmit_IT(&huart3, (uint8_t *)(GPIOD->ODR & RED_LED ? "Toggle Red; Pin state: active;\n\r\0" : "Toggle Red; Pin state: inactive;\n\r\0"), OUT_BUFFER_LEN);
+			if(GPIOD->ODR & RED_LED)
+			{
+				HAL_UART_Transmit_IT(&huart3, (uint8_t *)"Toggle Red; Pin state: active;\n\r", 33);
+			}
+			else
+			{
+				HAL_UART_Transmit_IT(&huart3, (uint8_t *)"Toggle Red; Pin state: inactive;\n\r", 35);
+			}
 			break;
 
 		case '3':
 			HAL_GPIO_TogglePin(GPIOD, BLUE_LED);
-			HAL_UART_Transmit_IT(&huart3, (uint8_t *)(GPIOD->ODR & BLUE_LED ? "Toggle Blue; Pin state: active;\n\r\0" : "Toggle Blue; Pin state: inactive;\n\r\0"), OUT_BUFFER_LEN);
+			if(GPIOD->ODR & BLUE_LED)
+			{
+				HAL_UART_Transmit_IT(&huart3, (uint8_t *)"Toggle Blue; Pin state: active;\n\r", 34);
+			}
+			else
+			{
+				HAL_UART_Transmit_IT(&huart3, (uint8_t *)"Toggle Blue; Pin state: inactive;\n\r", 36);
+			}
 			break;
 
 		default:
-			HAL_UART_Transmit_IT(&huart3, (uint8_t *)"Unexpected Command\n\r\0", OUT_BUFFER_LEN);
+			HAL_UART_Transmit_IT(&huart3, (uint8_t *)"Unexpected Command!\n\r", 22);
 			break;
 	}
 }
@@ -258,20 +392,20 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 	{
 		switch(GPIO_Pin)
 		{
-			case SWT5_PIN:
-				HAL_GPIO_TogglePin(GPIOD, GREEN_LED);
+			case GREEN_BUTTON:
+				UART_TransmitIT_TogglePin('0');
 				break;
 
-			case SWT3_PIN:
-				HAL_GPIO_TogglePin(GPIOD, ORANGE_LED);
+			case ORANGE_BUTTON:
+				UART_TransmitIT_TogglePin('1');
 				break;
 
-			case SWT4_PIN:
-				HAL_GPIO_TogglePin(GPIOD, RED_LED);
+			case RED_BUTTON:
+				UART_TransmitIT_TogglePin('2');
 				break;
 
-			case SWT1_PIN:
-				HAL_GPIO_TogglePin(GPIOD, BLUE_LED);
+			case BLUE_BUTTON:
+				UART_TransmitIT_TogglePin('3');
 				break;
 		}
 	}
@@ -280,17 +414,45 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
 	if(rx_status == HAL_OK)
 	{
-		UART_TransmitIT_TogglePin();
+		UART_TransmitIT_TogglePin(input_buffer[0]);
 	}
 	else
 	{
-		HAL_UART_Transmit_IT(&huart3, (uint8_t *)"UART Receive Error!\n\r\0", OUT_BUFFER_LEN);
+		HAL_UART_Transmit_IT(&huart3, (uint8_t *)"UART Receive Error!\n\r", 22);
 	}
+
+	rx_status = HAL_UART_Receive_IT(&huart3, &input_buffer[0], 1);
 }
 
 void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
 {
-	rx_status = HAL_UART_Receive_IT (&huart3, &input_buffer[0], 1);
+}
+
+static void TransmitData()
+{
+	char message[29] = "Current temperature is: 00\n\r";
+	uint8_t temp = (uint8_t)Tcurr_EXT_deg((&hadc1)->Instance->DR);
+	uint8_t right_byte = temp % 10;
+	uint8_t left_byte = (temp - right_byte)/10;
+
+	message[24] += left_byte;
+	message[25] += right_byte;
+
+	HAL_UART_Transmit_IT(&huart3, (uint8_t *)&message[0], 29);
+}
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim)
+{
+	if(htim->Instance == TIM2)
+	{
+		HAL_ADC_Start_IT(&hadc1);
+	}
+}
+void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
+{
+    if (hadc == &hadc1) {
+        HAL_ADC_Stop(&hadc1);
+        TransmitData();
+    }
 }
 /* USER CODE END 4 */
 

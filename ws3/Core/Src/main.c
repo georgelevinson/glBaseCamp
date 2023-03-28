@@ -502,18 +502,15 @@ static void HandleDataAndUpdate()
 }
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim)
 {
-	if(htim->Instance == TIM3)
+	if(htim->Instance == TIM2)
 	{
-		HAL_ADC_Start_DMA(&hadc1, (uint32_t*)&ADC_CONV_RES[0], 3);
-		adc_dma_complete = 0;
-		HandleDataAndUpdate();
+		HAL_ADC_Start(&hadc);
 	}
 }
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 {
     if (hadc == &hadc1) {
-        HAL_ADC_Stop_DMA(&hadc1);
-        adc_dma_complete = 1;
+        HAL_ADC_Stop(&hadc1);
         HandleDataAndUpdate();
     }
 }
