@@ -504,7 +504,8 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim)
 {
 	if(htim->Instance == TIM2)
 	{
-		HAL_ADC_Start(&hadc);
+		HAL_ADC_Start_DMA(&hadc1, (uint32_t*)&ADC_CONV_RES[0], 3);
+		adc_dma_complete = 0;\
 	}
 }
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
