@@ -61,8 +61,10 @@ static void MX_TIM2_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-uint8_t input_buffer[1];
-HAL_StatusTypeDef rx_status;
+static uint8_t input_buffer[1];
+static HAL_StatusTypeDef rx_status;
+static const uint8_t temp_message_len = 29;
+static const char temp_message[] = "Current temperature is: %02d\n\r\0";
 /* USER CODE END 0 */
 
 /**
@@ -430,15 +432,19 @@ void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
 
 static void TransmitData()
 {
-	char message[29] = "Current temperature is: 00\n\r";
 	uint8_t temp = (uint8_t)Tcurr_EXT_deg((&hadc1)->Instance->DR);
-	uint8_t right_byte = temp % 10;
-	uint8_t left_byte = (temp - right_byte)/10;
+	char buffer[temp_message_len];
 
-	message[24] += left_byte;
-	message[25] += right_byte;
+	int format = snprintf(buffer, temp_message_len, temp_message, temp);
 
-	HAL_UART_Transmit_IT(&huart3, (uint8_t *)&message[0], 29);
+	if(format > 0 && format <= temp_message_len)
+	{
+		HAL_UART_Transmit_IT(&huart3, (uint8_t *)&buffer[0], 29);
+	}
+	else
+	{
+		HAL_UART_Transmit_IT(&huart3, (uint8_t *)"snprintf() formatting error!\n\r\0", 31);
+	}
 }
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim)
 {
